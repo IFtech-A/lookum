@@ -1,0 +1,108 @@
+package sqlstore
+
+import (
+	"fmt"
+	"lookum/internal/model"
+	"strings"
+
+	"github.com/labstack/gommon/log"
+)
+
+//ProductRepo handler for database operations on product
+type ProductRepo struct {
+	store *Store
+}
+
+//Create inserts new product to database, returns error on fail
+func (r *ProductRepo) Create(p *model.Product) error {
+
+	sql := `INSERT INTO products(name, "desc", price, discount, category_id)
+	VALUES ($1,$2,$3,$4,$5)`
+
+	_, err := r.store.db.Exec(sql, p.Name, p.Description, p.Price, p.Discount, p.CategoryID)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+//GetProducts retrieve all products from database
+//@limit int - limit the resulting rows to given limit parameter, if 0 the default 20 will be used
+//@category int - retrieve products from only one category, if 0 all categories will be used
+//@@return - returns array of products
+func (r *ProductRepo) GetProducts(limit int, category int) ([]*model.Product, error) {
+
+	var sql strings.Builder
+
+	sql.WriteString("SELECT id, name, \"desc\", price, discount, status, likes, category_id FROM products ")
+
+	if category != 0 {
+		sql.WriteString(fmt.Sprintf("WHERE category_id = %v ", category))
+	}
+
+	if limit == 0 {
+		limit = 20
+	}
+	sql.WriteString(fmt.Sprintf(" LIMIT %v ", limit))
+
+	rows, err := r.store.db.Query(sql.String())
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	products := make([]*model.Product, 0, limit)
+	for rows.Next() {
+		p := model.NewProduct()
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Discount, &p.Status, &p.Likes, &p.CategoryID); err != nil {
+			return nil, err
+		}
+
+		products = append(products, p)
+	}
+
+	return products, nil
+}
+
+//GetProduct retrieve product using the product ID
+func (r *ProductRepo) GetProduct(id int) (*model.Product, error) {
+
+	sql := `SELECT id, name, "desc", price, discount, likes, status,created_at, category_id
+			FROM products
+			WHERE id=$1`
+
+	product := &model.Product{}
+	err := r.store.db.QueryRow(sql, id).
+		Scan(&product.ID, &product.Name, &product.Description,
+			&product.Price, &product.Discount, &product.Likes,
+			&product.Status, &product.CreatedAt, &product.CategoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	return product, nil
+}
+
+//FindByID queries product by its ID
+//@ID int - Identification number of product on database
+//@@*model.Product - Product struct with for a given. It is nil if ID was not found on Database
+//@@error - error sturcture to show error on database request. It is nil if no error has occured
+func (r *ProductRepo) FindByID(ID int) (*model.Product, error) {
+	return nil, nil
+}
+
+func (r *ProductRepo) AddImage(ID int, filename, fileuri string) error {
+	sql := `INSERT INTO images(product_id, filename, file_uri) 
+	VALUES ($1, $2, $3)
+	`
+
+	_, err := r.store.db.Exec(sql, ID, filename, fileuri)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

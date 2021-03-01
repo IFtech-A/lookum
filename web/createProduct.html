@@ -1,0 +1,83 @@
+<html>
+
+<head>
+    <title>Create Product</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+
+</head>
+
+<body style="background-color: #ffe8d6;">
+    <p class="h1 text-center" style="margin-top: 30;">Create a product</p>
+    <div class="center-block row" style="justify-content: center; margin-top: 20;">
+        <form action="/product" class="needs-validation col-md-5" style="float: none;" method="POST" enctype="multipart/form-data" novalidate>
+            <div class="mb-3">
+                <label for="productTitle" class="form-label">Title</label>
+                <input type="text" name="name" id="productTitle" class="form-control" placeholder="Product title"
+                    required>
+                <div class="invalid-feedback">
+                    Please enter a title for product.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="desc" class="form-control" placeholder="Description"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Price</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="price" class="form-control" placeholder="Price" required>
+                    <div class="invalid-feedback">
+                        Please enter the price of the product.
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Stock</label>
+                <input type="number" name="stock" class="form-control" placeholder="In stock">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" aria-label="Category">
+                    <option value="1" selected>Top</option>
+                    <option value="2">Bottom</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
+    </div>
+
+
+    <script>
+        // Example starter JavaScript for disabling form submissions if there are invalid fields
+        (function () {
+            'use strict'
+
+            // Fetch all the forms we want to apply custom Bootstrap validation styles to
+            var forms = document.querySelectorAll('.needs-validation')
+
+            // Loop over them and prevent submission
+            Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                        }
+
+                        form.classList.add('was-validated')
+                    }, false)
+                })
+        })()
+    </script>
+    <script src="js/bootstrap.min.js" crossorigin="anonymous"></script>
+</body>
+
+</html>

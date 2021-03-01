@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    Upload file
+</head>
+
+<body>
+    <form action="/fileUpload" method="POST" enctype="multipart/form-data">
+
+        <div>
+            <select id="product_id" name="id">
+            </select>
+        </div>
+
+        <input type="file" name="images" multiple />
+        <input type="submit" />
+    </form>
+    <script>
+        function reqListener() {
+            var selector = document.getElementById("product_id")
+            var responseJSON = JSON.parse(this.response)
+            responseJSON.map((product) => {
+                selector.innerHTML += "<option value='" + product.id + "'>" + product.title + "</option>";
+                return ;
+            });            
+        }
+
+        var oReq = new XMLHttpRequest();
+        oReq.addEventListener("load", reqListener);
+        oReq.open("GET", "http://localhost:8080/products");
+        oReq.send();
+    </script>
+</body>
+
+</html>
