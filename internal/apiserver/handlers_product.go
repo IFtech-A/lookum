@@ -15,25 +15,6 @@ import (
 
 const imagesPrefixPath = "images"
 
-var sampleProducts map[int]*model.Product = map[int]*model.Product{
-	1: {
-		ID:   1,
-		Name: "product 1",
-	},
-	2: {
-		ID:   2,
-		Name: "product 2",
-	},
-	3: {
-		ID:   3,
-		Name: "product 3",
-	},
-	4: {
-		ID:   4,
-		Name: "product 4",
-	},
-}
-
 func (s *Server) getProduct(c echo.Context) error {
 
 	productID, err := strconv.Atoi(c.Param("id"))
@@ -72,6 +53,7 @@ func (s *Server) getProducts(c echo.Context) error {
 		return err
 	}
 
+	c.Response().Writer.Header().Add("Access-Control-Allow-Origin", "*")
 	err = c.JSONPretty(http.StatusOK, products, " ")
 
 	return err

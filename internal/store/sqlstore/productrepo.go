@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/labstack/gommon/log"
+	"github.com/sirupsen/logrus"
 )
 
 //ProductRepo handler for database operations on product
@@ -64,13 +65,23 @@ func (r *ProductRepo) GetProducts(limit int, category int) ([]*model.Product, er
 		products = append(products, p)
 	}
 
+	for _, p := range products {
+		p.Images, err = r.GetImages(p.ID)
+		if err != nil {
+			logrus.Errorf(err.Error())
+		}
+	}
+
 	return products, nil
 }
 
 //GetProduct retrieve product using the product ID
+//@ID int - Identification number of product on database
+//@@*model.Product - Product struct with for a given. It is nil if ID was not found on Database
+//@@error - error sturcture to show error on database request. It is nil if no error has occured
 func (r *ProductRepo) GetProduct(id int) (*model.Product, error) {
 
-	sql := `SELECT id, name, "desc", price, discount, likes, status,created_at, category_id
+	sql := `SELECT id, name, "desc", price, discount, likes, status, created_at, category_id
 			FROM products
 			WHERE id=$1`
 
@@ -83,17 +94,47 @@ func (r *ProductRepo) GetProduct(id int) (*model.Product, error) {
 		return nil, err
 	}
 
+	product.Images, err = r.GetImages(id)
+	if err != nil {
+		logrus.Errorln(err.Error())
+	}
+
 	return product, nil
 }
 
-//FindByID queries product by its ID
-//@ID int - Identification number of product on database
-//@@*model.Product - Product struct with for a given. It is nil if ID was not found on Database
-//@@error - error sturcture to show error on database request. It is nil if no error has occured
-func (r *ProductRepo) FindByID(ID int) (*model.Product, error) {
-	return nil, nil
+//GetImages ...
+func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
+	sql := `SELECT id, filename, file_uri
+	FROM images
+	WHERE product_id=$1`
+
+	rows, err := r.store.db.Query(sql, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var image *model.Image = nil
+	var images []*model.Image = nil
+
+	for rows.Next() {
+		image = &model.Image{}
+		err := rows.Scan(&image.ID, &image.Filename, &image.FileURI)
+		if err != nil {
+			break
+		}
+
+		if images == nil {
+			images = make([]*model.Image, 0)
+		}
+		images = append(images, image)
+	}
+
+	return images, err
 }
 
+//AddImage ...
 func (r *ProductRepo) AddImage(ID int, filename, fileuri string) error {
 	sql := `INSERT INTO images(product_id, filename, file_uri) 
 	VALUES ($1, $2, $3)

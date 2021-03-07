@@ -36,8 +36,8 @@ func newServer(store *sqlstore.Store) *Server {
 	e.GET("/products", server.getProducts)
 	e.POST("/product", server.createProduct)
 	e.POST("/fileUpload", server.uploadProductImages)
+	e.Static("/images", "images")
 	e.Static("/", "web")
-	e.Static("/images/", "images")
 	server.e = e
 	return server
 

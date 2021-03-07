@@ -13,7 +13,15 @@ type Product struct {
 	Status      string    `json:"stock_status"`
 	Stock       int       `json:"in_stock" path:"in_stock" query:"in_stock" form:"in_stock"`
 	Likes       int       `json:"likes"`
+	Images      []*Image  `json:"images,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+//Image structure defines image attributes
+type Image struct {
+	ID       int    `json:"id"`
+	FileURI  string `json:"file_uri"`
+	Filename string `json:"-"`
 }
 
 //NewProduct ...
