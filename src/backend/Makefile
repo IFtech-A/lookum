@@ -6,6 +6,6 @@ clean:
 	rm -f bin/lookum
 
 build:
-	go build -o lookum cmd/main.go
+	go build -o lookum cmd/lookum/main.go
 
 all: build
