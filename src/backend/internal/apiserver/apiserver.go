@@ -2,7 +2,8 @@ package apiserver
 
 import (
 	"database/sql"
-	"lookum/internal/store/sqlstore"
+
+	"github.com/iftech-a/lookum/src/backend/internal/store/sqlstore"
 
 	"github.com/labstack/echo/v4"
 )

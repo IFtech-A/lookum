@@ -1,6 +1,6 @@
 package store
 
-import "lookum/internal/model"
+import "github.com/iftech-a/lookum/src/backend/internal/model"
 
 //ProductRepo repository for working with database on products
 type ProductRepo interface {

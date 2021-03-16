@@ -1,0 +1,14 @@
+{
+    "folders": [
+        {
+            "name": "Go backend",
+            "path": "./src/backend"
+        },
+    ],
+    "extensions": {
+        "recommendations": [
+            "golang.go",
+            "766b.go-outliner",
+        ]
+    }
+}

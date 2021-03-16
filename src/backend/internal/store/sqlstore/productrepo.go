@@ -2,8 +2,9 @@ package sqlstore
 
 import (
 	"fmt"
-	"lookum/internal/model"
 	"strings"
+
+	"github.com/iftech-a/lookum/src/backend/internal/model"
 
 	"github.com/labstack/gommon/log"
 	"github.com/sirupsen/logrus"

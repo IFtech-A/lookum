@@ -2,7 +2,8 @@ package sqlstore
 
 import (
 	"database/sql"
-	"lookum/internal/store"
+
+	"github.com/iftech-a/lookum/src/backend/internal/store"
 
 	_ "github.com/lib/pq" // postgresql pq library
 )

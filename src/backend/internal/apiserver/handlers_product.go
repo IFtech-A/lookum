@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"lookum/internal/model"
 	"net/http"
 	"os"
 	"strconv"
+
+	"github.com/iftech-a/lookum/src/backend/internal/model"
 
 	"github.com/labstack/echo/v4"
 )

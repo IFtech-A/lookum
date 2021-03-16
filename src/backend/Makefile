@@ -1,11 +1,11 @@
-.PHONY = all build clean
+.PHONY = all api clean
 
 .DEFAULT_GOAL = all
 
 clean:
 	rm -f bin/lookum
 
-build:
-	go build -o lookum cmd/lookum/main.go
+api:
+	go build -o bin/lookum cmd/lookum/main.go
 
 all: build
