@@ -17,11 +17,12 @@ prepare() {
 build_image() {
     case ${DOCKER_TYPE} in
     api|db)
-        docker build \
+        (set -x; docker build \
             -t ${DOCKER_REG}/${DOCKER_TYPE}:${DOCKER_TAG} \
             -t ${DOCKER_REG}/${DOCKER_TYPE}:latest \
             -f ${DIRNAME}/dockerfiles/${DOCKER_TYPE}.Dockerfile \
             ${PACKAGE_DIR}/$DOCKER_TYPE
+        )
     ;;
     esac
 }
