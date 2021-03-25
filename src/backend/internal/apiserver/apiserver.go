@@ -1,7 +1,10 @@
 package apiserver
 
 import (
+	"crypto/tls"
 	"database/sql"
+	"net/http"
+	"time"
 
 	"github.com/iftech-a/lookum/src/backend/internal/store/sqlstore"
 
@@ -23,9 +26,34 @@ func Start(config *Config) error {
 	}
 
 	store := sqlstore.New(db)
-	srv := newServer(store)
-	return srv.e.Start(config.BindAddr)
 
+	srv := newServer(store)
+
+	if config.CertificatePath != "" && config.PrivateKeyPath != "" {
+		cert, err := tls.LoadX509KeyPair(config.CertificatePath, config.PrivateKeyPath)
+		if err != nil {
+			return err
+		}
+		httpsServer := &http.Server{
+			Addr: config.BindAddr + ":443",
+			TLSConfig: &tls.Config{
+				Certificates: []tls.Certificate{
+					cert,
+				},
+			},
+			ReadHeaderTimeout: time.Second * 10,
+			IdleTimeout:       time.Second * 60,
+		}
+		go srv.e.StartServer(httpsServer)
+	}
+
+	httpServer := &http.Server{
+		Addr:              config.BindAddr + ":80",
+		ReadHeaderTimeout: time.Second * 10,
+		IdleTimeout:       time.Second * 60,
+	}
+
+	return srv.e.StartServer(httpServer)
 }
 
 func newServer(store *sqlstore.Store) *Server {

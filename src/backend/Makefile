@@ -8,4 +8,4 @@ clean:
 api:
 	go build -o bin/lookum cmd/lookum/main.go
 
-all: build
+all: api

@@ -31,6 +31,10 @@ func (s *Server) getProduct(c echo.Context) error {
 		return err
 	}
 
+	for _, image := range product.Images {
+		image.FileURI = fmt.Sprintf("http://cdn.%v/%v", c.Request().Host, image.FileURI)
+	}
+
 	c.JSONPretty(http.StatusOK, product, " ")
 	return nil
 }
@@ -52,6 +56,12 @@ func (s *Server) getProducts(c echo.Context) error {
 		log.Println(err.Error())
 		c.NoContent(http.StatusInternalServerError)
 		return err
+	}
+
+	for _, product := range products {
+		for _, image := range product.Images {
+			image.FileURI = fmt.Sprintf("http://cdn.%v/%v", c.Request().Host, image.FileURI)
+		}
 	}
 
 	c.Response().Writer.Header().Add("Access-Control-Allow-Origin", "*")
