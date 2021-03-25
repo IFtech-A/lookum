@@ -49,6 +49,12 @@ help:
 		@echo "  db-distclean            Remove db package data"
 		@echo "  db-package              Make db package"
 		@echo "  db-docker               Build db docker image"
+		@echo "  ------------------"
+		@echo "  REVERSE PROXY TARGETS"
+		@echo "  ------------------"
+		@echo "  proxy-distclean            Remove nginx proxy package data"
+		@echo "  proxy-package              Make nginx proxy package"
+		@echo "  proxy-docker               Build nginx proxy docker image"
 		@echo ""
 
 
@@ -57,11 +63,11 @@ prepare:
 
 clean: api-clean
 
-distclean: api-distclean db-distclean
+distclean: api-distclean db-distclean proxy-distclean
 
 all: api
 
-docker: api-docker db-docker
+docker: api-docker db-docker proxy-docker
 
-package: api-package db-package
+package: api-package db-package proxy-docker
 
