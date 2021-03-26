@@ -1,0 +1,39 @@
+version: "3.9"
+
+networks:
+  default:
+    name: test-server-network
+
+services:
+  db:
+    image: frenzy/db:latest
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      default:
+        aliases:
+          - "postgres"
+    
+
+  api:
+    depends_on:
+      - db
+    image: frenzy/api:latest
+    networks:
+      default:
+        aliases:
+          - "api-server"
+  proxy:
+    depends_on:
+      - api
+    image: frenzy/proxy:latest
+    ports:
+      - 80:80
+      - 8443:443
+    networks:
+      default:
+        aliases:
+          - "proxy"  
+
+volumes:
+  pgdata:
