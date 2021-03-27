@@ -2,7 +2,7 @@ version: "3.9"
 
 networks:
   default:
-    name: test-server-network
+    name: lookum
 
 services:
   db:
@@ -13,8 +13,9 @@ services:
       default:
         aliases:
           - "postgres"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
     
-
   api:
     depends_on:
       - db
@@ -23,17 +24,25 @@ services:
       default:
         aliases:
           - "api-server"
+    volumes:
+      - server-data:/lookum/data
+
   proxy:
     depends_on:
       - api
     image: frenzy/proxy:latest
     ports:
       - 80:80
-      - 8443:443
+      - 443:443
     networks:
       default:
         aliases:
           - "proxy"  
+    volumes:
+      - server-data:/var/www
 
 volumes:
   pgdata:
+    external: true
+  server-data:
+    external: true

@@ -26,8 +26,9 @@ api-rebuild: api-clean api
 
 api-package: api
 	$(Q)$(MKDIR) $(LOOKUM_PACKAGE)/bin
+	$(Q)$(MKDIR) $(LOOKUM_PACKAGE)/data/images
 	$(Q)$(CP)r $(LOOKUM_BUILD)/bin $(LOOKUM_PACKAGE)/
-	$(Q)$(CP)r $(LOOKUM_BUILD)/conf $(LOOKUM_PACKAGE)/
+	# $(Q)$(CP)r $(LOOKUM_BUILD)/conf $(LOOKUM_PACKAGE)/
 	$(Q)$(CP)r $(LOOKUM_BUILD)/web $(LOOKUM_PACKAGE)/
 	$(Q)$(SCRIPT_DIR)/translate-links.sh $(LOOKUM_PACKAGE) $(LOOKUM_SRC)
 	$(Q)(echo "Packaging completed in directory: $(LOOKUM_PACKAGE)")

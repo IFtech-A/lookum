@@ -32,7 +32,7 @@ func (s *Server) getProduct(c echo.Context) error {
 	}
 
 	for _, image := range product.Images {
-		image.FileURI = fmt.Sprintf("http://cdn.%v/%v", c.Request().Host, image.FileURI)
+		image.FileURI = fmt.Sprintf("https://cdn.%v/%v", c.Request().Host, image.FileURI)
 	}
 
 	c.JSONPretty(http.StatusOK, product, " ")
@@ -60,7 +60,7 @@ func (s *Server) getProducts(c echo.Context) error {
 
 	for _, product := range products {
 		for _, image := range product.Images {
-			image.FileURI = fmt.Sprintf("http://cdn.%v/%v", c.Request().Host, image.FileURI)
+			image.FileURI = fmt.Sprintf("https://cdn.%v/%v", c.Request().Host, image.FileURI)
 		}
 	}
 
@@ -141,6 +141,7 @@ func (s *Server) uploadProductImages(c echo.Context) error {
 		fmt.Print(file.Filename)
 		s.e.Logger.Debugf("%v", file.Filename)
 
+		realFilePath := fmt.Sprintf("data/%v/%v_%v", imagesPrefixPath, productID, file.Filename)
 		filePath := fmt.Sprintf("%v/%v_%v", imagesPrefixPath, productID, file.Filename)
 		err := s.s.Product().AddImage(productID, file.Filename, filePath)
 		if err != nil {
@@ -155,7 +156,7 @@ func (s *Server) uploadProductImages(c echo.Context) error {
 		defer src.Close()
 
 		// Destination
-		dst, err := os.Create(filePath)
+		dst, err := os.Create(realFilePath)
 		if err != nil {
 			s.e.Logger.Error(err)
 			return err
