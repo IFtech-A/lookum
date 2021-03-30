@@ -30,6 +30,41 @@ func (r *ProductRepo) Create(p *model.Product) error {
 	return nil
 }
 
+//UpdateProduct updates attributes in the program
+func (r *ProductRepo) UpdateProduct(p *model.Product) error {
+
+	sql := `UPDATE products
+	SET
+		name=$1,
+		"desc"=$2,
+		price=$3,
+		discount=$4,
+		category_id=$5
+	WHERE id=$6`
+
+	_, err := r.store.db.Exec(sql, p.Name, p.Description, p.Price, p.Discount, p.CategoryID, p.ID)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
+//DeleteProduct deletes product using product ID
+func (r *ProductRepo) DeleteProduct(id int) error {
+
+	sql := `DELETE FROM products WHERE id=$1`
+
+	_, err := r.store.db.Exec(sql, id)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+
+	return nil
+}
+
 //GetProducts retrieve all products from database
 //@limit int - limit the resulting rows to given limit parameter, if 0 the default 20 will be used
 //@category int - retrieve products from only one category, if 0 all categories will be used

@@ -35,14 +35,15 @@ CREATE TABLE  IF NOT EXISTS "images" (
 CREATE TABLE  IF NOT EXISTS "order_items" (
   "order_id" int NOT NULL,
   "product_id" int NOT NULL,
-  "quantity" int DEFAULT 1
+  "quantity" float4 DEFAULT 0,
+  "at_price" float4 DEFAULT 0
 );
 
 CREATE TABLE  IF NOT EXISTS "orders" (
   "id" SERIAL PRIMARY KEY,
-  "user_id" int UNIQUE NOT NULL,
-  "status" varchar DEFAULT '',
-  "created_at" varchar DEFAULT ''
+  "user_id" int NOT NULL,
+  "status" int DEFAULT 1000,
+  "created_at" timestamp DEFAULT (now())
 );
 
 CREATE TABLE  IF NOT EXISTS "categories" (

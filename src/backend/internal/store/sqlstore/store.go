@@ -12,6 +12,7 @@ import (
 type Store struct {
 	db          *sql.DB
 	productRepo *ProductRepo
+	orderRepo   *OrderRepo
 }
 
 //New ...
@@ -30,4 +31,15 @@ func (s *Store) Product() store.ProductRepo {
 	}
 
 	return s.productRepo
+}
+
+//Order returns repository with Order related API
+func (s *Store) Order() store.OrderRepo {
+	if s.orderRepo == nil {
+		s.orderRepo = &OrderRepo{
+			store: s,
+		}
+	}
+
+	return s.orderRepo
 }
