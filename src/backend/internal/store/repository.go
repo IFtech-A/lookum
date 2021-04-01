@@ -15,7 +15,7 @@ type ProductRepo interface {
 //OrderRepo repository for working with database on product orders
 type OrderRepo interface {
 	Create(*model.Order) (int, error)
-	GetOrders() ([]*model.Order, error)
+	GetOrders(int) ([]*model.Order, error)
 	GetOrder(int) (*model.Order, error)
 	GetOrderWithItems(int) (*model.Order, error)
 	DeleteOrder(int) error

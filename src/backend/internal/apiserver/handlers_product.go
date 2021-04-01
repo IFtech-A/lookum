@@ -31,11 +31,17 @@ func (s *Server) getProduct(c echo.Context) error {
 		return err
 	}
 
+	if product == nil {
+		c.JSONBlob(http.StatusNotFound, []byte("{ \"error\": \"not found\"}"))
+		return nil
+	}
+
 	for _, image := range product.Images {
 		image.FileURI = fmt.Sprintf("https://cdn.%v/%v", c.Request().Host, image.FileURI)
 	}
 
 	c.JSONPretty(http.StatusOK, product, " ")
+
 	return nil
 }
 
@@ -65,7 +71,12 @@ func (s *Server) getProducts(c echo.Context) error {
 	}
 
 	c.Response().Writer.Header().Add("Access-Control-Allow-Origin", "*")
-	err = c.JSONPretty(http.StatusOK, products, " ")
+
+	if products != nil {
+		err = c.JSONPretty(http.StatusOK, products, " ")
+	} else {
+		err = c.JSONBlob(http.StatusOK, []byte("[]"))
+	}
 
 	return err
 }

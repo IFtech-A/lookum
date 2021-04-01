@@ -1,6 +1,11 @@
 package sqlstore
 
 import (
+	"fmt"
+	"strings"
+
+	"database/sql"
+
 	"github.com/iftech-a/lookum/src/backend/internal/model"
 	"github.com/sirupsen/logrus"
 )
@@ -12,18 +17,37 @@ type OrderRepo struct {
 func (r *OrderRepo) Create(order *model.Order) (int, error) {
 
 	createOrderSql := `INSERT INTO orders(user_id, status) VALUES ($1, $2) RETURNING id`
-	createOrderItemsSql := `INSERT INTO orderItems(order_id, product_id, quantity, at_price) VALUES ($1, $2, $3, $4)`
+	createOrderItemsSql := `INSERT INTO order_items(order_id, product_id, quantity, at_price) VALUES ($1, $2, $3, $4)`
+	// productCheckSql := `SELECT quantity FROM products WHERE $1`
 
 	transaction, err := r.store.db.Begin()
 	if err != nil {
 		return 0, err
 	}
-	res, err := transaction.Exec(createOrderSql, 0, order.Status)
-	if err != nil {
+
+	// res := transaction.QueryRow(productCheckSql, order.OrderItems[0].ProductID)
+	// if res.Err() != nil {
+	// 	transaction.Rollback()
+	// 	return 0, res.Err()
+	// }
+
+	// var realQuantity float32
+	// err = res.Scan(&realQuantity)
+	// if err != nil {
+	// 	transaction.Rollback()
+	// 	return 0, err
+	// }
+
+	// if realQuantity < order.OrderItems[0].Quantity {
+	// 	return 0, errors.New("insufficient quantity")
+	// }
+
+	res := transaction.QueryRow(createOrderSql, 0, order.Status)
+	if res.Err() != nil {
 		transaction.Rollback()
-		return 0, err
+		return 0, res.Err()
 	}
-	orderID, err := res.LastInsertId()
+	err = res.Scan(&order.ID)
 	if err != nil {
 		logrus.Error(err.Error())
 
@@ -32,7 +56,7 @@ func (r *OrderRepo) Create(order *model.Order) (int, error) {
 			transaction.Rollback()
 			return 0, row.Err()
 		}
-		err = row.Scan(&orderID)
+		err = row.Scan(&order.ID)
 		if err != nil {
 			transaction.Rollback()
 			return 0, err
@@ -40,7 +64,7 @@ func (r *OrderRepo) Create(order *model.Order) (int, error) {
 	}
 
 	for _, v := range order.OrderItems {
-		_, err = transaction.Exec(createOrderItemsSql, orderID, v.ProductID, v.Quantity, v.AtPrice)
+		_, err = transaction.Exec(createOrderItemsSql, order.ID, v.ProductID, v.Quantity, v.AtPrice)
 		if err != nil {
 			transaction.Rollback()
 			return 0, err
@@ -53,14 +77,21 @@ func (r *OrderRepo) Create(order *model.Order) (int, error) {
 		return 0, nil
 	}
 
-	return int(orderID), nil
+	return order.ID, nil
 }
 
-func (r *OrderRepo) GetOrders() ([]*model.Order, error) {
+func (r *OrderRepo) GetOrders(limit int) ([]*model.Order, error) {
 
-	sql := `SELECT id, user_id, status, created_at FROM orders`
+	var sql strings.Builder
 
-	rows, err := r.store.db.Query(sql)
+	sql.WriteString("SELECT id, user_id, status, created_at FROM orders")
+
+	if limit == 0 {
+		limit = 20
+	}
+	sql.WriteString(fmt.Sprintf(" LIMIT %v ", limit))
+
+	rows, err := r.store.db.Query(sql.String())
 	if err != nil {
 		return nil, err
 	}
@@ -85,16 +116,16 @@ func (r *OrderRepo) GetOrders() ([]*model.Order, error) {
 }
 func (r *OrderRepo) GetOrder(orderID int) (*model.Order, error) {
 
-	sql := `SELECT id, user_id, status, created_at FROM orders WHERE id=$1`
+	querySql := `SELECT id, user_id, status, created_at FROM orders WHERE id=$1`
 
-	row := r.store.db.QueryRow(sql, orderID)
-	if row.Err() != nil {
-		return nil, row.Err()
-	}
+	row := r.store.db.QueryRow(querySql, orderID)
 
 	order := &model.Order{}
 	err := row.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -103,18 +134,15 @@ func (r *OrderRepo) GetOrder(orderID int) (*model.Order, error) {
 
 func (r *OrderRepo) GetOrderWithItems(orderID int) (*model.Order, error) {
 
-	getOrderSql := `SELECT id, user_id, status, created_at FROM orders WHERE id=$1`
 	getOrderItemsSql := `SELECT product_id, quantity, at_price FROM order_items WHERE id=$1`
 
-	row := r.store.db.QueryRow(getOrderSql, orderID)
-	if row.Err() != nil {
-		return nil, row.Err()
-	}
-
-	order := &model.Order{}
-	err := row.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt)
+	order, err := r.GetOrder(orderID)
 	if err != nil {
 		return nil, err
+	}
+
+	if order == nil {
+		return nil, nil
 	}
 
 	rows, err := r.store.db.Query(getOrderItemsSql, orderID)
