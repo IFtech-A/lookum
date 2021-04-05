@@ -4,24 +4,37 @@ import "time"
 
 //Product defines product's attributes
 type Product struct {
-	ID          int       `json:"id" path:"id" query:"id" form:"id"`
-	CategoryID  int       `json:"category_id" path:"category_id" query:"category_id" form:"category_id"`
-	Name        string    `json:"title" path:"name" query:"name" form:"name"`
-	Description string    `json:"desc" path:"desc" query:"desc" form:"desc"`
-	Price       float32   `json:"price" path:"price" query:"price" form:"price"`
-	Discount    float32   `json:"discount" path:"discount" query:"discount" form:"discount"`
-	Status      string    `json:"stock_status"`
-	Stock       int       `json:"in_stock" path:"in_stock" query:"in_stock" form:"in_stock"`
-	Likes       int       `json:"likes"`
-	Images      []*Image  `json:"images,omitempty"`
+	ID        int     `json:"id" path:"id"`
+	UserID    int     `json:"vendor_id"`
+	Title     string  `json:"title"`
+	MetaTitle string  `json:"meta_title"`
+	Slug      string  `json:"slug"`
+	Summary   string  `json:"summary"`
+	Type      int     `json:"type"`
+	SKU       string  `json:"sku"`
+	Price     float32 `json:"price"`
+	Discount  float32 `json:"discount"`
+	Quantity  int     `json:"quantity"`
+	Available bool    `json:"shop_available"`
+	Content   string  `json:"content"`
+
 	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	PublishedAt time.Time `json:"published_at"`
+
+	StartsAt time.Time `json:"starts_at"`
+	EndsAt   time.Time `json:"ends_at"`
+
+	Images []*Image `json:"images,omitempty"`
 }
 
 //Image structure defines image attributes
 type Image struct {
-	ID       int    `json:"id"`
-	FileURI  string `json:"file_uri"`
-	Filename string `json:"-"`
+	ID        int    `json:"id"`
+	ProductID int    `json:"product_id"`
+	FileURI   string `json:"file_uri"`
+	Filename  string `json:"-"`
+	Main      bool   `json:"main"`
 }
 
 //NewProduct ...

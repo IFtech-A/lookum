@@ -1,7 +1,6 @@
 package sqlstore
 
 import (
-	"fmt"
 	"strings"
 
 	"database/sql"
@@ -14,10 +13,31 @@ type OrderRepo struct {
 	store *Store
 }
 
-func (r *OrderRepo) Create(order *model.Order) (int, error) {
+func (r *OrderRepo) Create(o *model.Order) (int, error) {
 
-	createOrderSql := `INSERT INTO orders(user_id, status) VALUES ($1, $2) RETURNING id`
-	createOrderItemsSql := `INSERT INTO order_items(order_id, product_id, quantity, at_price) VALUES ($1, $2, $3, $4)`
+	createOrderSql := `INSERT INTO order(
+		user_id,
+		address_id,
+		token,
+		status,
+		sub_total,
+		item_discount,
+		tax,
+		shipping,
+		total,
+		promo,
+		total_discount,
+		grand_total)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	RETURNING id`
+	createOrderItemsSql := `INSERT INTO order_item(
+		product_id,
+		order_id,
+		sku,
+		price,
+		discount,
+		quantity)
+	VALUES ($1, $2, $3, $4, $5, $6)`
 	// productCheckSql := `SELECT quantity FROM products WHERE $1`
 
 	transaction, err := r.store.db.Begin()
@@ -42,29 +62,37 @@ func (r *OrderRepo) Create(order *model.Order) (int, error) {
 	// 	return 0, errors.New("insufficient quantity")
 	// }
 
-	res := transaction.QueryRow(createOrderSql, 0, order.Status)
-	if res.Err() != nil {
-		transaction.Rollback()
-		return 0, res.Err()
-	}
-	err = res.Scan(&order.ID)
+	err = transaction.QueryRow(createOrderSql,
+		o.UserID,
+		o.AddressID,
+		o.Token,
+		o.Status,
+		o.SubTotal,
+		o.ItemDiscount,
+		o.Tax,
+		o.Shipping,
+		o.Total,
+		o.Promo,
+		o.TotalDiscount,
+		o.GrandTotal,
+	).Scan(&o.ID)
 	if err != nil {
 		logrus.Error(err.Error())
-
-		row := transaction.QueryRow("SELECT max(id) FROM orders")
-		if row.Err() != nil {
-			transaction.Rollback()
-			return 0, row.Err()
-		}
-		err = row.Scan(&order.ID)
+		err = transaction.QueryRow("SELECT max(id) FROM order").Scan(&o.ID)
 		if err != nil {
 			transaction.Rollback()
 			return 0, err
 		}
 	}
 
-	for _, v := range order.OrderItems {
-		_, err = transaction.Exec(createOrderItemsSql, order.ID, v.ProductID, v.Quantity, v.AtPrice)
+	for _, v := range o.OrderItems {
+		_, err = transaction.Exec(createOrderItemsSql,
+			v.ProductID,
+			o.ID,
+			v.SKU,
+			v.Price,
+			v.Discount,
+			v.Quantity)
 		if err != nil {
 			transaction.Rollback()
 			return 0, err
@@ -77,51 +105,115 @@ func (r *OrderRepo) Create(order *model.Order) (int, error) {
 		return 0, nil
 	}
 
-	return order.ID, nil
+	return o.ID, nil
 }
 
-func (r *OrderRepo) GetOrders(limit int) ([]*model.Order, error) {
+func (r *OrderRepo) GetOrders(userID, limit int) ([]*model.Order, error) {
 
-	var sql strings.Builder
+	var querySql strings.Builder
 
-	sql.WriteString("SELECT id, user_id, status, created_at FROM orders")
+	querySql.WriteString(`SELECT 
+		id, 
+		user_id,
+		address_id,
+		token,
+		status,
+		sub_total,
+		item_discount,
+		tax,
+		shipping,
+		total,
+		promo,
+		total_discount,
+		grand_total,
+		created_at,
+		updated_at
+	FROM order WHERE user_id=$1 LIMIT $2`)
 
 	if limit == 0 {
 		limit = 20
 	}
-	sql.WriteString(fmt.Sprintf(" LIMIT %v ", limit))
 
-	rows, err := r.store.db.Query(sql.String())
+	rows, err := r.store.db.Query(querySql.String(), userID, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	var order *model.Order
+	var o *model.Order
 	var orders []*model.Order
+	var updatedAtNullable sql.NullTime
 	for rows.Next() {
-
-		order = &model.Order{}
-		err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt)
+		o = &model.Order{}
+		err := rows.Scan(
+			&o.ID,
+			&o.UserID,
+			&o.AddressID,
+			&o.Token,
+			&o.Status,
+			&o.SubTotal,
+			&o.ItemDiscount,
+			&o.Tax,
+			&o.Shipping,
+			&o.Total,
+			&o.Promo,
+			&o.TotalDiscount,
+			&o.GrandTotal,
+			&o.CreatedAt,
+			&updatedAtNullable,
+		)
 		if err != nil {
 			return nil, err
 		}
-
-		if orders == nil {
-			orders = make([]*model.Order, 0)
+		if updatedAtNullable.Valid {
+			o.UpdatedAt = updatedAtNullable.Time
 		}
-		orders = append(orders, order)
+		orders = append(orders, o)
 	}
 
 	return orders, nil
 }
+
 func (r *OrderRepo) GetOrder(orderID int) (*model.Order, error) {
 
-	querySql := `SELECT id, user_id, status, created_at FROM orders WHERE id=$1`
+	querySql := `SELECT 
+		id, 
+		user_id,
+		address_id,
+		token,
+		status,
+		sub_total,
+		item_discount,
+		tax,
+		shipping,
+		total,
+		promo,
+		total_discount,
+		grand_total,
+		created_at,
+		updated_at
+	FROM order 
+	WHERE id=$1`
 
 	row := r.store.db.QueryRow(querySql, orderID)
 
-	order := &model.Order{}
-	err := row.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt)
+	o := &model.Order{}
+	var updatedAtNullable sql.NullTime
+	err := row.Scan(&o.ID,
+		&o.UserID,
+		&o.AddressID,
+		&o.Token,
+		&o.Status,
+		&o.SubTotal,
+		&o.ItemDiscount,
+		&o.Tax,
+		&o.Shipping,
+		&o.Total,
+		&o.Promo,
+		&o.TotalDiscount,
+		&o.GrandTotal,
+		&o.CreatedAt,
+		&updatedAtNullable,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -129,12 +221,25 @@ func (r *OrderRepo) GetOrder(orderID int) (*model.Order, error) {
 		return nil, err
 	}
 
-	return order, nil
+	if updatedAtNullable.Valid {
+		o.UpdatedAt = updatedAtNullable.Time
+	}
+
+	return o, nil
 }
 
 func (r *OrderRepo) GetOrderWithItems(orderID int) (*model.Order, error) {
 
-	getOrderItemsSql := `SELECT product_id, quantity, at_price FROM order_items WHERE id=$1`
+	getOrderItemsSql := `SELECT
+		product_id,
+		order_id,
+		sku,
+		price,
+		discount,
+		quantity,
+		created_at,
+		updated_at
+	FROM order_item WHERE id=$1`
 
 	order, err := r.GetOrder(orderID)
 	if err != nil {
@@ -150,20 +255,29 @@ func (r *OrderRepo) GetOrderWithItems(orderID int) (*model.Order, error) {
 		return order, err
 	}
 
-	var orderItem *model.OrderItem
+	var oi *model.OrderItem
+	var updatedAtNullable sql.NullTime
 	for rows.Next() {
 
-		orderItem = &model.OrderItem{OrderID: orderID}
-		err = rows.Scan(&orderItem.ProductID, &orderItem.Quantity, &orderItem.AtPrice)
+		oi = &model.OrderItem{}
+		err = rows.Scan(
+			&oi.ProductID,
+			&oi.OrderID,
+			&oi.SKU,
+			&oi.Price,
+			&oi.Discount,
+			&oi.Quantity,
+			&oi.CreatedAt,
+			&updatedAtNullable,
+		)
 		if err != nil {
 			break
 		}
-
-		if order.OrderItems == nil {
-			order.OrderItems = make([]*model.OrderItem, 0)
+		if updatedAtNullable.Valid {
+			oi.UpdatedAt = updatedAtNullable.Time
 		}
 
-		order.OrderItems = append(order.OrderItems, orderItem)
+		order.OrderItems = append(order.OrderItems, oi)
 	}
 
 	return order, err
@@ -171,8 +285,8 @@ func (r *OrderRepo) GetOrderWithItems(orderID int) (*model.Order, error) {
 
 func (r *OrderRepo) DeleteOrder(orderID int) error {
 
-	deleteOrderSql := `DELETE FROM orders WHERE id=$1`
-	deleteOrderItemsSql := `DELETE FROM order_items WHERE order_id=$1`
+	deleteOrderSql := `DELETE FROM order WHERE id=$1`
+	deleteOrderItemsSql := `DELETE FROM order_item WHERE order_id=$1`
 
 	tr, err := r.store.db.Begin()
 	if err != nil {

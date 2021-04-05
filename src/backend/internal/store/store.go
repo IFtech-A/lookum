@@ -4,4 +4,5 @@ package store
 type Store interface {
 	Product() ProductRepo
 	Order() OrderRepo
+	Cart() CartRepo
 }

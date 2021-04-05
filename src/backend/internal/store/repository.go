@@ -15,8 +15,24 @@ type ProductRepo interface {
 //OrderRepo repository for working with database on product orders
 type OrderRepo interface {
 	Create(*model.Order) (int, error)
-	GetOrders(int) ([]*model.Order, error)
+	GetOrders(int, int) ([]*model.Order, error)
 	GetOrder(int) (*model.Order, error)
 	GetOrderWithItems(int) (*model.Order, error)
 	DeleteOrder(int) error
+}
+
+//CartRepo repository for working with database on product orders
+type CartRepo interface {
+	Create(*model.Cart) (int, error)
+	GetCarts(int, int) ([]*model.Cart, error)
+	GetCart(int) (*model.Cart, error)
+	GetCartWithItems(int) (*model.Cart, error)
+	DeleteCart(int) error
+}
+
+//UserRepo repository for working with database on product orders
+type UserRepo interface {
+	Create(*model.User) (int, error)
+	GetUser(int) (*model.User, error)
+	DeleteUser(int) error
 }

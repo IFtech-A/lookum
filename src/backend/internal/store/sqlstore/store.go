@@ -13,6 +13,8 @@ type Store struct {
 	db          *sql.DB
 	productRepo *ProductRepo
 	orderRepo   *OrderRepo
+	cartRepo    *CartRepo
+	userRepo    *UserRepo
 }
 
 //New ...
@@ -42,4 +44,26 @@ func (s *Store) Order() store.OrderRepo {
 	}
 
 	return s.orderRepo
+}
+
+//Cart returns repository with Cart related API
+func (s *Store) Cart() store.CartRepo {
+	if s.cartRepo == nil {
+		s.cartRepo = &CartRepo{
+			store: s,
+		}
+	}
+
+	return s.cartRepo
+}
+
+//User returns repository with User related API
+func (s *Store) User() store.UserRepo {
+	if s.userRepo == nil {
+		s.userRepo = &UserRepo{
+			store: s,
+		}
+	}
+
+	return s.userRepo
 }

@@ -1,8 +1,10 @@
 package sqlstore
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/iftech-a/lookum/src/backend/internal/model"
 
@@ -18,10 +20,35 @@ type ProductRepo struct {
 //Create inserts new product to database, returns error on fail
 func (r *ProductRepo) Create(p *model.Product) error {
 
-	sql := `INSERT INTO products(name, "desc", price, discount, category_id)
-	VALUES ($1,$2,$3,$4,$5)`
+	sql := `INSERT INTO product(
+			user_id,
+			title,
+			meta_title,
+			slug,
+			summary,
+			type,
+			sku,
+			price,
+			discount,
+			quantity,
+			available,
+			content)
+	VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+	RETURNING id`
 
-	_, err := r.store.db.Exec(sql, p.Name, p.Description, p.Price, p.Discount, p.CategoryID)
+	err := r.store.db.QueryRow(sql,
+		p.UserID,
+		p.Title,
+		p.MetaTitle,
+		p.Slug,
+		p.Summary,
+		p.Type,
+		p.SKU,
+		p.Price,
+		p.Discount,
+		p.Quantity,
+		p.Available,
+		p.Content).Scan(&p.ID)
 	if err != nil {
 		log.Error(err.Error())
 		return err
@@ -33,16 +60,38 @@ func (r *ProductRepo) Create(p *model.Product) error {
 //UpdateProduct updates attributes in the program
 func (r *ProductRepo) UpdateProduct(p *model.Product) error {
 
-	sql := `UPDATE products
+	sql := `UPDATE product
 	SET
-		name=$1,
-		"desc"=$2,
-		price=$3,
-		discount=$4,
-		category_id=$5
-	WHERE id=$6`
+		user_id=$1,
+		title=$2,
+		meta_title=$3,
+		slug=$4,
+		summary=$5,
+		type=$6,
+		sku=$7,
+		price=$8,
+		discount=$9,
+		quantity=$10,
+		available=$11,
+		content=$12,
+		updated_at=$13
+	WHERE id=$14`
 
-	_, err := r.store.db.Exec(sql, p.Name, p.Description, p.Price, p.Discount, p.CategoryID, p.ID)
+	_, err := r.store.db.Exec(sql,
+		p.UserID,
+		p.Title,
+		p.MetaTitle,
+		p.Slug,
+		p.Summary,
+		p.Type,
+		p.SKU,
+		p.Price,
+		p.Discount,
+		p.Quantity,
+		p.Available,
+		p.Content,
+		time.Now(),
+		p.ID)
 	if err != nil {
 		log.Error(err.Error())
 		return err
@@ -54,7 +103,7 @@ func (r *ProductRepo) UpdateProduct(p *model.Product) error {
 //DeleteProduct deletes product using product ID
 func (r *ProductRepo) DeleteProduct(id int) error {
 
-	sql := `DELETE FROM products WHERE id=$1`
+	sql := `DELETE FROM product WHERE id=$1`
 
 	_, err := r.store.db.Exec(sql, id)
 	if err != nil {
@@ -71,20 +120,39 @@ func (r *ProductRepo) DeleteProduct(id int) error {
 //@@return - returns array of products
 func (r *ProductRepo) GetProducts(limit int, category int) ([]*model.Product, error) {
 
-	var sql strings.Builder
+	var querySql strings.Builder
 
-	sql.WriteString("SELECT id, name, \"desc\", price, discount, status, likes, category_id FROM products ")
+	querySql.WriteString(`SELECT 
+		product.id, 
+		product.user_id,
+		product.title,
+		product.meta_title,
+		product.slug,
+		product.summary,
+		product.type,
+		product.sku,
+		product.price,
+		product.discount,
+		product.quantity,
+		product.available,
+		product.content,
+		product.created_at,
+		product.updated_at
+	FROM product `)
 
 	if category != 0 {
-		sql.WriteString(fmt.Sprintf("WHERE category_id = %v ", category))
+		querySql.WriteString(fmt.Sprintf(`
+		INNER JOIN product_category 
+			ON product.id = product_category.product_id 
+		WHERE product_category.category_id = %v `, category))
 	}
 
 	if limit == 0 {
 		limit = 20
 	}
-	sql.WriteString(fmt.Sprintf(" LIMIT %v ", limit))
+	querySql.WriteString(fmt.Sprintf(" LIMIT %v ", limit))
 
-	rows, err := r.store.db.Query(sql.String())
+	rows, err := r.store.db.Query(querySql.String())
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +160,30 @@ func (r *ProductRepo) GetProducts(limit int, category int) ([]*model.Product, er
 	defer rows.Close()
 
 	products := make([]*model.Product, 0, limit)
+	var updatedAtNullable sql.NullTime
 	for rows.Next() {
 		p := model.NewProduct()
-		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Price, &p.Discount, &p.Status, &p.Likes, &p.CategoryID); err != nil {
+		if err := rows.Scan(
+			&p.ID,
+			&p.UserID,
+			&p.Title,
+			&p.MetaTitle,
+			&p.Slug,
+			&p.Summary,
+			&p.Type,
+			&p.SKU,
+			&p.Price,
+			&p.Discount,
+			&p.Quantity,
+			&p.Available,
+			&p.Content,
+			&p.CreatedAt,
+			&updatedAtNullable); err != nil {
 			return nil, err
+		}
+
+		if updatedAtNullable.Valid {
+			p.UpdatedAt = updatedAtNullable.Time
 		}
 
 		products = append(products, p)
@@ -117,32 +205,66 @@ func (r *ProductRepo) GetProducts(limit int, category int) ([]*model.Product, er
 //@@error - error sturcture to show error on database request. It is nil if no error has occured
 func (r *ProductRepo) GetProduct(id int) (*model.Product, error) {
 
-	sql := `SELECT id, name, "desc", price, discount, likes, status, created_at, category_id
-			FROM products
-			WHERE id=$1`
+	querySql := `SELECT 
+		id, 
+		user_id,
+		title,
+		meta_title,
+		slug,
+		summary,
+		type,
+		sku,
+		price,
+		discount,
+		quantity,
+		available,
+		content,
+		created_at,
+		updated_at
+	FROM product WHERE id=$1`
 
-	product := &model.Product{}
-	err := r.store.db.QueryRow(sql, id).
-		Scan(&product.ID, &product.Name, &product.Description,
-			&product.Price, &product.Discount, &product.Likes,
-			&product.Status, &product.CreatedAt, &product.CategoryID)
+	p := &model.Product{}
+	var updatedAtNullable sql.NullTime
+	err := r.store.db.QueryRow(querySql, id).
+		Scan(
+			&p.ID,
+			&p.UserID,
+			&p.Title,
+			&p.MetaTitle,
+			&p.Slug,
+			&p.Summary,
+			&p.Type,
+			&p.SKU,
+			&p.Price,
+			&p.Discount,
+			&p.Quantity,
+			&p.Available,
+			&p.Content,
+			&p.CreatedAt,
+			&updatedAtNullable,
+		)
 	if err != nil {
 		return nil, err
 	}
 
-	product.Images, err = r.GetImages(id)
+	if updatedAtNullable.Valid {
+		p.UpdatedAt = updatedAtNullable.Time
+	}
+
+	p.Images, err = r.GetImages(id)
 	if err != nil {
 		logrus.Errorln(err.Error())
 	}
 
-	return product, nil
+	return p, nil
 }
 
 //GetImages ...
 func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
-	sql := `SELECT id, filename, file_uri
-	FROM images
-	WHERE product_id=$1`
+	sql := `SELECT 
+		id,
+		file_uri
+	FROM image WHERE product_id=$1`
 
 	rows, err := r.store.db.Query(sql, productID)
 	if err != nil {
@@ -156,14 +278,11 @@ func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
 
 	for rows.Next() {
 		image = &model.Image{}
-		err := rows.Scan(&image.ID, &image.Filename, &image.FileURI)
+		err := rows.Scan(&image.ID, &image.FileURI)
 		if err != nil {
 			break
 		}
 
-		if images == nil {
-			images = make([]*model.Image, 0)
-		}
 		images = append(images, image)
 	}
 
@@ -171,12 +290,15 @@ func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
 }
 
 //AddImage ...
-func (r *ProductRepo) AddImage(ID int, filename, fileuri string) error {
-	sql := `INSERT INTO images(product_id, filename, file_uri) 
-	VALUES ($1, $2, $3)
-	`
+func (r *ProductRepo) AddImage(productID int, filename, fileuri string) error {
+	sql := `
+	INSERT INTO image(
+		product_id,
+		filename,
+		file_uri) 
+	VALUES ($1, $2, $3)`
 
-	_, err := r.store.db.Exec(sql, ID, filename, fileuri)
+	_, err := r.store.db.Exec(sql, productID, filename, fileuri)
 	if err != nil {
 		return err
 	}

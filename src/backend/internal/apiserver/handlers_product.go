@@ -1,10 +1,13 @@
 package apiserver
 
 import (
-	"errors"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"strconv"
@@ -26,6 +29,10 @@ func (s *Server) getProduct(c echo.Context) error {
 
 	product, err := s.s.Product().GetProduct(productID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, map[string]string{"error": "not_found"})
+			return nil
+		}
 		s.e.Logger.Errorf(err.Error())
 		c.JSON(http.StatusBadRequest, map[string]string{"error": "bad_request"})
 		return err
@@ -81,47 +88,65 @@ func (s *Server) getProducts(c echo.Context) error {
 	return err
 }
 
-func parseRequestProduct(c echo.Context) (*model.Product, error) {
+// func parseRequestProduct(c echo.Context) (*model.Product, error) {
 
-	badRequestErr := errors.New("bad_request")
-	name := c.FormValue("name")
-	if name == "" {
-		return nil, badRequestErr
-	}
-	desc := c.FormValue("desc")
+// 	badRequestErr := errors.New("bad_request")
+// 	name := c.FormValue("name")
+// 	if name == "" {
+// 		return nil, badRequestErr
+// 	}
+// 	desc := c.FormValue("desc")
 
-	price, err := strconv.ParseFloat(c.FormValue("price"), 32)
-	if err != nil {
-		price = 0
-	}
-	discount, err := strconv.ParseFloat(c.FormValue("discount"), 32)
-	if err != nil {
-		discount = 0
-	}
-	instock, err := strconv.Atoi(c.FormValue("instock"))
-	if err != nil {
-		instock = 0
-	}
+// 	price, err := strconv.ParseFloat(c.FormValue("price"), 32)
+// 	if err != nil {
+// 		price = 0
+// 	}
+// 	discount, err := strconv.ParseFloat(c.FormValue("discount"), 32)
+// 	if err != nil {
+// 		discount = 0
+// 	}
+// 	instock, err := strconv.Atoi(c.FormValue("instock"))
+// 	if err != nil {
+// 		instock = 0
+// 	}
 
-	return &model.Product{
-		Name:        name,
-		Description: desc,
-		Price:       float32(price),
-		Discount:    float32(discount),
-		Stock:       instock,
-		CategoryID:  1,
-	}, nil
+// 	return &model.Product{
+// 		Name:        name,
+// 		Description: desc,
+// 		Price:       float32(price),
+// 		Discount:    float32(discount),
+// 		Stock:       instock,
+// 		CategoryID:  1,
+// 	}, nil
 
-}
+// }
+
 func (s *Server) createProduct(c echo.Context) error {
 
 	badRequestErr := map[string]string{"error": "bad_request"}
-	product, err := parseRequestProduct(c)
+
+	contentType, _, err := mime.ParseMediaType(c.Request().Header.Get("Content-Type"))
+	if err != nil {
+		s.e.Logger.Error(err.Error())
+		return c.JSON(http.StatusBadRequest, badRequestErr)
+	}
+	if contentType == "" || contentType != "application/json" {
+		s.e.Logger.Error("createProduct: content type is not application/json")
+		return c.JSON(http.StatusBadRequest, badRequestErr)
+	}
+
+	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 
-	err = s.s.Product().Create(product)
+	p := model.NewProduct()
+	err = json.Unmarshal(body, p)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, badRequestErr)
+	}
+
+	err = s.s.Product().Create(p)
 	if err != nil {
 		c.NoContent(http.StatusInternalServerError)
 	}
