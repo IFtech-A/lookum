@@ -3,6 +3,8 @@ package apiserver
 //Config holds configuration parameters for the apiserver
 type Config struct {
 	BindAddr        string `json:"bind_addr"`
+	PortHTTP        int    `json:"port_http" env:"PORT_HTTP"`
+	PortHTTPS       int    `json:"port_https" env:"PORT_HTTPS"`
 	LogLevel        string `json:"log_level"`
 	DatabaseURL     string `json:"database_url"`
 	DbHost          string `json:"db_host" env:"DBHOST"`
@@ -19,6 +21,8 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		BindAddr:   "0.0.0.0",
+		PortHTTP:   80,
+		PortHTTPS:  443,
 		LogLevel:   "debug",
 		DbHost:     "postgres",
 		DbPort:     5432,

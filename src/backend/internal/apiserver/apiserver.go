@@ -3,6 +3,7 @@ package apiserver
 import (
 	"crypto/tls"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,7 +36,7 @@ func Start(config *Config) error {
 			return err
 		}
 		httpsServer := &http.Server{
-			Addr: config.BindAddr + ":443",
+			Addr: fmt.Sprintf("%v:%v", config.BindAddr, config.PortHTTPS),
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{
 					cert,
@@ -48,7 +49,7 @@ func Start(config *Config) error {
 	}
 
 	httpServer := &http.Server{
-		Addr:              config.BindAddr + ":80",
+		Addr:              fmt.Sprintf("%v:%v", config.BindAddr, config.PortHTTP),
 		ReadHeaderTimeout: time.Second * 10,
 		IdleTimeout:       time.Second * 60,
 	}

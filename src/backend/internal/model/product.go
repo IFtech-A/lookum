@@ -30,11 +30,10 @@ type Product struct {
 
 //Image structure defines image attributes
 type Image struct {
-	ID        int    `json:"id"`
-	ProductID int    `json:"product_id"`
-	FileURI   string `json:"file_uri"`
-	Filename  string `json:"-"`
-	Main      bool   `json:"main"`
+	ID       int    `json:"id"`
+	FileURI  string `json:"file_uri"`
+	Filename string `json:"-"`
+	Main     bool   `json:"main"`
 }
 
 //NewProduct ...
