@@ -9,19 +9,27 @@
 <body style="background-color: #ffe8d6;">
     <p class="h1 text-center" style="margin-top: 30;">Create a product</p>
     <div class="center-block row" style="justify-content: center; margin-top: 20;">
-        <form action="/product" class="needs-validation col-md-5" style="float: none;" method="POST" enctype="multipart/form-data" novalidate>
+        <form action="" class="needs-validation col-md-5" style="float: none;" method="POST"
+            enctype="multipart/form-data" novalidate>
             <div class="mb-3">
-                <label for="productTitle" class="form-label">Title</label>
-                <input type="text" name="name" id="productTitle" class="form-control" placeholder="Product title"
-                    required>
+                <label for="title" class="form-label">Title</label>
+                <input type="text" name="title" id="title" class="form-control" placeholder="Product title" required>
                 <div class="invalid-feedback">
                     Please enter a title for product.
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Description</label>
-                <textarea name="desc" class="form-control" placeholder="Description"></textarea>
+                <label for="sku" class="form-label">SKU</label>
+                <input type="text" name="sku" id="sku" class="form-control" placeholder="Stock keeping unit" required>
+                <div class="invalid-feedback">
+                    Please enter product's stock keeping unit.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number" name="quantity" class="form-control" placeholder="Quantity">
             </div>
 
             <div class="mb-3">
@@ -36,18 +44,19 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Stock</label>
-                <input type="number" name="stock" class="form-control" placeholder="In stock">
+                <label class="form-label">Discount</label>
+                <input type="number" name="discount" class="form-control" placeholder="Discount">
             </div>
-
+            <!-- 
             <div class="mb-3">
                 <label class="form-label">Category</label>
                 <select class="form-select" aria-label="Category">
                     <option value="1" selected>Top</option>
                     <option value="2">Bottom</option>
                 </select>
-            </div>
-
+            </div> -->
+            <input type="hidden" name="vendor_id" value="1" />
+            <input type="hidden" name="slug" value="test" />
             <div class="mb-3">
                 <button type="submit" class="btn btn-primary">Create</button>
             </div>
@@ -70,9 +79,39 @@
                         if (!form.checkValidity()) {
                             event.preventDefault()
                             event.stopPropagation()
+                            return
                         }
 
                         form.classList.add('was-validated')
+                        let formData = new FormData(form)
+                        let object = {}
+                        formData.forEach((value, key) => {
+                            if (key === "vendor_id" || key === "quantity")
+                                value = parseInt(value)
+                            if (key === "price" || key === "discount")
+                                value = parseFloat(value)
+                            object[key] = value})
+                        let jsonData = JSON.stringify(object)
+
+                        event.preventDefault()
+                        event.stopPropagation()
+                        let request = new XMLHttpRequest()
+                        request.onreadystatechange = () => {
+                            if (request.readyState === XMLHttpRequest.DONE) {
+                                let status = request.status
+                                if (status === 0 || (status >= 200 && status < 400)) {
+                                    alert("Product created successfully. Add images to product")
+                                    window.location.href = '/'
+                                } else {
+                                    alert("Product creation failed")
+                                }
+                            }
+                        }
+                        request.open("POST", "/product")
+                        request.setRequestHeader("Content-Type", "application/json")
+                        request.send(jsonData)
+
+
                     }, false)
                 })
         })()

@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"time"
+)
 
 //Product defines product's attributes
 type Product struct {
@@ -39,4 +43,9 @@ type Image struct {
 //NewProduct ...
 func NewProduct() *Product {
 	return &Product{}
+}
+
+func (p *Product) GenerateSlug() {
+	hash := sha256.Sum256([]byte(p.Title))
+	p.Slug = hex.EncodeToString(hash[:])
 }

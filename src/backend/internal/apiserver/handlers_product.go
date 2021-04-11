@@ -137,17 +137,22 @@ func (s *Server) createProduct(c echo.Context) error {
 
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
+		s.e.Logger.Error(err.Error())
 		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 
 	p := model.NewProduct()
 	err = json.Unmarshal(body, p)
 	if err != nil {
+		s.e.Logger.Error(err.Error())
 		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 
+	p.GenerateSlug()
+
 	err = s.s.Product().Create(p)
 	if err != nil {
+		s.e.Logger.Error(err.Error())
 		c.NoContent(http.StatusInternalServerError)
 	}
 
@@ -157,18 +162,22 @@ func (s *Server) createProduct(c echo.Context) error {
 func (s *Server) uploadProductImages(c echo.Context) error {
 	form, err := c.MultipartForm()
 
+	badRequestErr := map[string]string{"error": "bad_request"}
+
 	if err != nil {
-		fmt.Print(err)
-		return err
+		s.e.Logger.Errorf("uploadProductImages: %v", err.Error())
+		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 	product := form.Value["id"]
 	if len(product) == 0 {
-		return fmt.Errorf("no product id")
+		s.e.Logger.Error("uploadProductImages: no product id")
+		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 
 	productID, err := strconv.Atoi(product[0])
 	if err != nil {
-		return fmt.Errorf("no product id")
+		s.e.Logger.Error("uploadProductImages: no product id")
+		return c.JSON(http.StatusBadRequest, badRequestErr)
 	}
 
 	files := form.File["images"]
@@ -181,12 +190,13 @@ func (s *Server) uploadProductImages(c echo.Context) error {
 		filePath := fmt.Sprintf("%v/%v_%v", imagesPrefixPath, productID, file.Filename)
 		err := s.s.Product().AddImage(productID, file.Filename, filePath)
 		if err != nil {
+			s.e.Logger.Errorf("uploadProductImages: %v", err.Error())
 			return err
 		}
 		// Source
 		src, err := file.Open()
 		if err != nil {
-			s.e.Logger.Error(err)
+			s.e.Logger.Errorf("uploadProductImages: %v", err.Error())
 			return err
 		}
 		defer src.Close()
@@ -194,16 +204,17 @@ func (s *Server) uploadProductImages(c echo.Context) error {
 		// Destination
 		dst, err := os.Create(realFilePath)
 		if err != nil {
-			s.e.Logger.Error(err)
+			s.e.Logger.Errorf("uploadProductImages: %v", err.Error())
 			return err
 		}
 		defer dst.Close()
 
 		// Copy
 		if _, err = io.Copy(dst, src); err != nil {
+			s.e.Logger.Errorf("uploadProductImages: %v", err.Error())
 			return err
 		}
 
 	}
-	return nil
+	return c.NoContent(http.StatusCreated)
 }
