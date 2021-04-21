@@ -1,6 +1,8 @@
-package apiserver
+package config
 
-//Config holds configuration parameters for the apiserver
+import "fmt"
+
+//Config holds configuration parameters for server
 type Config struct {
 	BindAddr        string `json:"bind_addr"`
 	PortHTTP        int    `json:"port_http" env:"PORT_HTTP"`
@@ -13,6 +15,7 @@ type Config struct {
 	DbPassword      string `json:"db_pass" env:"DBPASS"`
 	DbName          string `json:"db_name" env:"DBNAME"`
 	DbSSLMode       string `json:"db_ssl_mode" env:"DBSSLMODE"`
+	SessionKey      string `env:"SESSION_KEY"`
 	PrivateKeyPath  string `json:"pkey_path"`
 	CertificatePath string `json:"cert_path"`
 }
@@ -30,5 +33,17 @@ func NewConfig() *Config {
 		DbPassword: "1234qwer!",
 		DbName:     "lookum",
 		DbSSLMode:  "disable",
+		SessionKey: "secret",
 	}
+}
+
+func (c *Config) GetDatabaseURL() string {
+	return fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
+		c.DbHost,
+		c.DbPort,
+		c.DbUser,
+		c.DbPassword,
+		c.DbName,
+		c.DbSSLMode,
+	)
 }

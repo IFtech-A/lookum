@@ -32,7 +32,7 @@ func (r *UserRepo) Create(u *model.User) (int, error) {
 		u.LastName,
 		u.Mobile,
 		u.Email,
-		u.PasswordHash,
+		u.Password,
 		u.Admin,
 		u.Vendor,
 		u.Intro,
@@ -81,7 +81,58 @@ func (r *UserRepo) GetUser(userID int) (*model.User, error) {
 		&u.LastName,
 		&u.Mobile,
 		&u.Email,
-		&u.PasswordHash,
+		&u.Password,
+		&u.Admin,
+		&u.Vendor,
+		&u.Intro,
+		&u.Profile,
+		&u.RegisteredAt,
+		&lastLoginNullable,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if lastLoginNullable.Valid {
+		u.LastLogin = lastLoginNullable.Time
+	}
+
+	return u, nil
+}
+
+func (r *UserRepo) GetUserByEmail(email string) (*model.User, error) {
+
+	querySql := `SELECT 
+		id, 
+		first_name,
+		middle_name,
+		last_name,
+		mobile,
+		email,
+		password,
+		admin,
+		vendor,
+		intro,
+		profile,
+		registered_at,
+		last_login
+	FROM "user" 
+	WHERE email=$1`
+
+	row := r.store.db.QueryRow(querySql, email)
+
+	u := &model.User{}
+	var lastLoginNullable sql.NullTime
+	err := row.Scan(&u.ID,
+		&u.FirstName,
+		&u.MiddleName,
+		&u.LastName,
+		&u.Mobile,
+		&u.Email,
+		&u.Password,
 		&u.Admin,
 		&u.Vendor,
 		&u.Intro,

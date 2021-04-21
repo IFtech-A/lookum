@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/iftech-a/lookum/src/backend/internal/config"
 	"github.com/iftech-a/lookum/src/backend/internal/store/sqlstore"
 
 	"github.com/labstack/echo/v4"
@@ -15,12 +16,13 @@ import (
 type Server struct {
 	e *echo.Echo
 	s *sqlstore.Store
+	c *config.Config
 }
 
 //Start starts API server using the given configuration parameters
-func Start(config *Config) error {
+func Start(conf *config.Config) error {
 
-	db, err := newDB(config.DatabaseURL)
+	db, err := newDB(conf.GetDatabaseURL())
 
 	if err != nil {
 		return err
@@ -28,15 +30,17 @@ func Start(config *Config) error {
 
 	store := sqlstore.New(db)
 
-	srv := newServer(store)
+	srv := newServer(store, conf)
 
-	if config.CertificatePath != "" && config.PrivateKeyPath != "" {
-		cert, err := tls.LoadX509KeyPair(config.CertificatePath, config.PrivateKeyPath)
+	srv.configureRoutes()
+
+	if conf.CertificatePath != "" && conf.PrivateKeyPath != "" {
+		cert, err := tls.LoadX509KeyPair(conf.CertificatePath, conf.PrivateKeyPath)
 		if err != nil {
 			return err
 		}
 		httpsServer := &http.Server{
-			Addr: fmt.Sprintf("%v:%v", config.BindAddr, config.PortHTTPS),
+			Addr: fmt.Sprintf("%v:%v", conf.BindAddr, conf.PortHTTPS),
 			TLSConfig: &tls.Config{
 				Certificates: []tls.Certificate{
 					cert,
@@ -49,7 +53,7 @@ func Start(config *Config) error {
 	}
 
 	httpServer := &http.Server{
-		Addr:              fmt.Sprintf("%v:%v", config.BindAddr, config.PortHTTP),
+		Addr:              fmt.Sprintf("%v:%v", conf.BindAddr, conf.PortHTTP),
 		ReadHeaderTimeout: time.Second * 10,
 		IdleTimeout:       time.Second * 60,
 	}
@@ -57,29 +61,32 @@ func Start(config *Config) error {
 	return srv.e.StartServer(httpServer)
 }
 
-func newServer(store *sqlstore.Store) *Server {
-	server := &Server{
+func newServer(store *sqlstore.Store, conf *config.Config) *Server {
+	return &Server{
 		s: store,
+		e: echo.New(),
+		c: conf,
 	}
-	e := echo.New()
-	e.GET("/product/:id", server.getProduct)
-	e.GET("/products", server.getProducts)
-	e.POST("/product", server.createProduct)
-	e.GET("/order/:id", server.getOrder)
-	e.GET("/orders", server.getOrders)
-	e.POST("/order", server.createOrder)
-	e.GET("/cart/:id", server.getCart)
-	e.GET("/carts", server.getCarts)
-	e.POST("/cart", server.createCart)
-	e.GET("/user/:id", server.getUser)
-	e.POST("/user", server.createUser)
+}
 
-	e.POST("/fileUpload", server.uploadProductImages)
-	e.Static("/images", "images")
-	e.Static("/", "web")
-	server.e = e
-	return server
+func (s *Server) configureRoutes() {
 
+	s.e.GET("/product/:id", s.getProduct)
+	s.e.GET("/products", s.getProducts)
+	s.e.POST("/product", s.createProduct)
+	s.e.GET("/order/:id", s.getOrder)
+	s.e.GET("/orders", s.getOrders)
+	s.e.POST("/order", s.createOrder)
+	s.e.GET("/cart/:id", s.getCart)
+	s.e.GET("/carts", s.getCarts)
+	s.e.POST("/cart", s.createCart)
+	s.e.GET("/user/:id", s.getUser)
+	s.e.POST("/user", s.createUser)
+	s.e.POST("/login", s.Login)
+
+	s.e.POST("/fileUpload", s.uploadProductImages)
+	s.e.Static("/images", "images")
+	s.e.Static("/", "web")
 }
 
 func newDB(databaseURL string) (*sql.DB, error) {

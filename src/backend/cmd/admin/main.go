@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	env "github.com/Netflix/go-env"
-	"github.com/iftech-a/lookum/src/backend/internal/apiserver"
+	"github.com/Netflix/go-env"
+	"github.com/iftech-a/lookum/src/backend/internal/admin"
 	"github.com/iftech-a/lookum/src/backend/internal/config"
 )
 
@@ -16,7 +16,9 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	err = apiserver.Start(config)
+	server := admin.NewAdminServer(config)
+
+	err = server.Start()
 	if err != nil {
 		log.Fatal(err.Error())
 	}

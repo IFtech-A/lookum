@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	env "github.com/Netflix/go-env"
-	"github.com/iftech-a/lookum/src/backend/internal/apiserver"
 	"github.com/iftech-a/lookum/src/backend/internal/config"
+	gql "github.com/iftech-a/lookum/src/backend/internal/graphql"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -13,12 +12,10 @@ func main() {
 	config := config.NewConfig()
 	_, err := env.UnmarshalFromEnviron(config)
 	if err != nil {
-		log.Fatal(err.Error())
+		logrus.Fatal(err.Error())
 	}
 
-	err = apiserver.Start(config)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
+	server := gql.NewGQLServer(config)
+	err = server.Start()
+	logrus.Fatal(err.Error())
 }

@@ -34,5 +34,6 @@ type CartRepo interface {
 type UserRepo interface {
 	Create(*model.User) (int, error)
 	GetUser(int) (*model.User, error)
+	GetUserByEmail(string) (*model.User, error)
 	DeleteUser(int) error
 }

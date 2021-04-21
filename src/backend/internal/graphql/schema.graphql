@@ -1,0 +1,18 @@
+type User {
+  id: ID!
+  firstName: String
+  middleName: String
+  lastName: String
+  mobile: String
+  email: String!
+  isAdmin: Boolean!
+  isVendor: Boolean!
+  registeredAt: DateTime!
+  lastLogin: DateTime
+  intro: String
+  profile: String
+}
+
+type Query {
+    user(id: ID!): User
+}

@@ -263,7 +263,9 @@ func (r *ProductRepo) GetProduct(id int) (*model.Product, error) {
 func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
 	sql := `SELECT 
 		id,
-		file_uri
+		file_uri,
+		filename,
+		main
 	FROM image WHERE product_id=$1`
 
 	rows, err := r.store.db.Query(sql, productID)
@@ -278,7 +280,7 @@ func (r *ProductRepo) GetImages(productID int) ([]*model.Image, error) {
 
 	for rows.Next() {
 		image = &model.Image{}
-		err := rows.Scan(&image.ID, &image.FileURI)
+		err := rows.Scan(&image.ID, &image.FileURI, &image.Filename, &image.Main)
 		if err != nil {
 			break
 		}
