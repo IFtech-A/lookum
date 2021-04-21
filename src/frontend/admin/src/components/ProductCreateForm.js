@@ -12,7 +12,6 @@ export default function CreateForm(props) {
 
     return (
         <form onSubmit={handleSubmit(onProductCreate)}>
-            <input type="hidden" value="1" {...register('vendor_id')} />
             <div>
                 <label>Title</label>
                 <input
